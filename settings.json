@@ -6,7 +6,7 @@
     "logLevel": "silent",
     "updatePresence": true,
     "selfListen": false,
-    "userAgent": "facebookexternalhit/1.1",
+    "userAgent": "Mozilla/5.0 (Android 12; Mobile; rv:135.0) Gecko/135.0 Firefox/135.0",
     "online": true,
     "autoMarkDelivery": false,
     "autoMarkRead": false,
