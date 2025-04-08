@@ -341,14 +341,14 @@ async function main() {
       "No settings found, please check if the settings are properly configured.",
       "Info"
     );
-    process.exit(1);
+    // process.exit(1);
   }
   loadLog("Loading cookie...", "Cookie");
   const cookie = loadCookie();
   if (!cookie) {
     loadLog("No cookie found.", "Cookie");
     loadLog("Please check if cookie.json exists or a valid json.", "Cookie");
-    process.exit(1);
+    // process.exit(1);
   }
   loadLog("Found cookie.", "Cookie");
   logger("Logging in...", "FCA");

@@ -3,22 +3,22 @@ import { UNIRedux } from "@cassidy/unispectra";
 export const meta = {
   name: "daily",
   description: "Claim your daily reward!",
-  version: "1.0.0",
-  author: "Liane Cagara",
+  version: "1.0.2",
+  author: "Liane Cagara | JenicaDev",
   category: "Rewards",
   permissions: [0],
   noPrefix: false,
   requirement: "3.0.0",
   icon: "💎",
 };
+
 export const style = {
-  title: "Daily Reward 💗",
-  titleFont: "bold",
+  title: "Daily Reward 💎",
+  titleFont: "fancy",
   contentFont: "fancy",
 };
 
 /**
- *
  * @type {CommandEntry}
  */
 export async function entry({
@@ -47,6 +47,23 @@ export async function entry({
 
   let canClaim = false;
 
+  const elapsedTime = currentTime - (lastDailyClaim || Date.now());
+  const claimTimes = Math.max(
+    1,
+    Math.floor(elapsedTime / oneDayInMilliseconds)
+  );
+  const dailyReward = 100 * claimTimes;
+  const gemReward = claimTimes;
+  const extraEXP = claimTimes * cassEXP.level * 5;
+  const petPoints = Math.floor(dailyReward / 10);
+
+  const rewardList =
+    `${UNIRedux.arrow} ***Next Rewards***\n\n` +
+    `🧪 **Experience Points** (x${extraEXP}) [exp]\n` +
+    `💵 **Money** (x${dailyReward.toLocaleString()}) [money]\n` +
+    `💶 **Pet Points** (x${petPoints.toLocaleString()}) [battlePoints]\n` +
+    `💎 **Gems** (x${gemReward}) [gems]`;
+
   if (!lastDailyClaim) {
     canClaim = true;
   } else {
@@ -60,23 +77,16 @@ export async function entry({
       const hoursRemaining = Math.floor(
         (timeRemaining / (1000 * 60 * 60)) % 24
       );
-      const minutesRemaining = Math.floor((timeRemaining / 1000 / 60) % 60);
+      const minutesRemaining = Math.floor((timeRemaining / (1000 / 60)) % 60);
       const secondsRemaining = Math.floor((timeRemaining / 1000) % 60);
 
-      output.reply(
-        `⏳ You've already claimed your daily reward. Please wait for ${hoursRemaining} hours, ${minutesRemaining} minutes, and ${secondsRemaining} seconds before claiming again.`
+      return output.reply(
+        `👤 **${name}** (Daily Claim)\n\n` +
+          `❌ Wait ${hoursRemaining} hours, ${minutesRemaining} minutes, and ${secondsRemaining} seconds to claim again.\n\n` +
+          `${rewardList}`
       );
-      return;
     }
   }
-  const elapsedTime = currentTime - (lastDailyClaim || Date.now());
-  const claimTimes = Math.max(
-    1,
-    Math.floor(elapsedTime / oneDayInMilliseconds)
-  );
-  const dailyReward = 100 * claimTimes;
-  collectibles.raise("gems", claimTimes);
-  const extraEXP = claimTimes * cassEXP.level * 5;
 
   if (canClaim) {
     cassExpress.createMail({
@@ -87,21 +97,27 @@ export async function entry({
     });
 
     cassEXP.expControls.raise(extraEXP);
+    collectibles.raise("gems", gemReward);
     await money.set(input.senderID, {
       money: userMoney + dailyReward,
       lastDailyClaim: currentTime,
-      battlePoints: battlePoints + Math.floor(dailyReward / 10),
+      battlePoints: battlePoints + petPoints,
       collectibles: Array.from(collectibles),
       cassExpress: cassExpress.raw(),
       cassEXP: cassEXP.raw(),
     });
 
-    output.reply(
-      `${
-        UNIRedux.charm
-      } You've claimed your daily reward! Come back tomorrow for more.\n\n🧪 **x${extraEXP}** Experience Points (exp)\n💵 **x${dailyReward.toLocaleString()}** Money (money)\n💷 **x${Math.floor(
-        dailyReward / 10
-      ).toLocaleString()}** Battle Points (battlePoints)`
+    const claimedList =
+      `${UNIRedux.arrow} ***Rewards***\n\n` +
+      `🧪 **Experience Points** (x${extraEXP}) [exp]\n` +
+      `💵 **Money** (x${dailyReward.toLocaleString()}) [money]\n` +
+      `💶 **Pet Points** (x${petPoints.toLocaleString()}) [battlePoints]\n` +
+      `💎 **Gems** (x${gemReward}) [gems]`;
+
+    return output.reply(
+      `👤 **${name}** (Daily Claim)\n\n` +
+        `✅ Claimed your daily reward! Come back tomorrow.\n\n` +
+        `${claimedList}`
     );
   }
 }

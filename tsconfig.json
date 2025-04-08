@@ -5,7 +5,11 @@
     "inlineSources": true
   },
   "compilerOptions": {
+    "jsx": "preserve",
+    "jsxFactory": "fromElement",
+    "jsxFragmentFactory": "fromElement",
     "esModuleInterop": true,
+    "jsxImportSource": "./handlers/definers/",
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "noImplicitAny": false,

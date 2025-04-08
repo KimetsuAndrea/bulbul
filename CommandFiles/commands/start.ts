@@ -1,7 +1,6 @@
 import {
   fontMarkups,
   isAdminCommand,
-  listIcons,
   removeCommandAliases,
   toTitleCase,
   UNIRedux,
@@ -18,31 +17,22 @@ export const meta = {
   category: "System",
   permissions: [0],
   requirement: "3.0.0",
-  requirement: "3.0.0",
   icon: "🧰",
 };
+
 export async function entry({
   input,
   output,
   commands: ogc,
   prefix,
-  threadConfig,
   money,
-}) {
+}: CommandContext) {
   const commands = removeCommandAliases(ogc);
   const args = input.arguments;
   const { logo: icon } = global.Cassidy;
   const userData = await money.get(input.senderID);
   const shop = new ShopClass(userData.shopInv);
 
-  const fakeSystemMsg = "🖥️ System Update: New commands available! ⚙️";
-  const randomQuote = [
-    "🍃 Always remember: work hard, play hard! 💪",
-    "🦄 Life is too short to not enjoy the little things. 💖",
-    "💻 Keep coding, keep dreaming. 🌠",
-  ];
-  const quoteOfTheDay =
-    randomQuote[Math.floor(Math.random() * randomQuote.length)];
   if (args.length > 0 && isNaN(parseInt(args[0]))) {
     const commandName = args[0];
     const command = ogc[commandName];
@@ -125,7 +115,7 @@ export async function entry({
   let result = `**Page ${currentPage} of ${totalPages}** 📄\n`;
   let preff = "│ ";
 
-  pageCategories.forEach((category, index) => {
+  pageCategories.forEach((category) => {
     result += `\n╭─────────────❍\n${preff}**${category}** 📁\n${preff}\n`;
     categorizedCommands[category].forEach((command) => {
       const {

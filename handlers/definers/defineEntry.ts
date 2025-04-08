@@ -24,6 +24,8 @@ export function defineEntry(
 
 import { ReduxCMDHome } from "@cass-modules/reduxCMDHomeV2";
 import { SpectralCMDHome } from "@cassidy/spectral-home";
+import type { UserStatsManager } from "cassidy-userData";
+import type OutputProps from "output-cassidy";
 
 /**
  * Defines a home command entry for the SpectralCMD system.
@@ -73,3 +75,22 @@ export function defineHome(
     return (ctx) => home.runInContext(ctx);
   }
 }
+
+export type VNode = {
+  tag: string;
+  props: any;
+  children: any[];
+};
+
+
+// export function defineOutputJSX(output: OutputProps) {
+//   return ({ reply = false, send = false, children = "" }) => {
+    
+//   }
+// }
+
+// export function defineUserStatsJSX(money: UserStatsManager) {
+//   return ({ reply = false, send = false, children = "" }) => {
+    
+//   }
+// }

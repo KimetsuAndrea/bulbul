@@ -182,12 +182,14 @@ export function use(obj) {
         const finalName = uiName || name;
         let isOther = finalName !== name;
 
-        options.body =
-          hasS && finalName && finalName !== "Unregistered"
-            ? `👤 **${finalName}**${
-                obj.command && !isOther ? ` (${obj.input.words[0]})` : ""
-              }\n\n${options.body}`
-            : `🍃 Register with **${obj.prefix}id-setname** now!\n\n${options.body}`;
+        if (options.body && !options.body.trim().startsWith("👤")) {
+          options.body =
+            hasS && finalName && finalName !== "Unregistered"
+              ? `👤 **${finalName}**${
+                  obj.command && !isOther ? ` (${obj.input.words[0]})` : ""
+                }\n\n${options.body}`
+              : `🍃 Register with **${obj.prefix}id-setname** now!\n\n${options.body}`;
+        }
       }
 
       if (
@@ -210,7 +212,7 @@ export function use(obj) {
 
         options.body =
           hasS && finalName
-            ? `${options.body}\n\n${UNIRedux.standardLine}\n${
+            ? `${options.body}\n${UNIRedux.standardLine}\n${
                 UNIRedux.arrow
               } ***Level*** ${UNISpectra.nextArrow} ${inst.level} [${
                 inst.exp

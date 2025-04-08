@@ -29,7 +29,6 @@ export class style {
   };
 }
 
-
 const restoSimulation = {
   key: "resto",
   verb: "sell",
@@ -178,6 +177,9 @@ const restoSimulation = {
   ],
   actionEmoji: "🔥",
   initialStorage: 40,
+  stoData: {
+    price: 100,
+  },
 };
 
 export async function entry({ GameSimulator }) {

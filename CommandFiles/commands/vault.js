@@ -5,8 +5,8 @@ export const meta = {
   name: "vault",
   description:
     "Organize and manage your external inventory with an additional 100 slots.",
-  author: "Liane Cagara",
-  version: "1.1.3",
+  author: "Liane Cagara | JenicaDev",
+  version: "1.1.4",
   usage: "{prefix}vault <action> [arguments]",
   category: "Inventory",
   permissions: [0],
@@ -32,7 +32,6 @@ export async function entry(ctx) {
   let userInventory = new Inventory(userData.inventory);
 
   let [...actionArgs] = args;
-  let action = input.propertyArray[0];
   let newActionArgs = [];
   for (let i = 0; i < actionArgs.length; i++) {
     const value = actionArgs[i];
@@ -52,84 +51,55 @@ export async function entry(ctx) {
 
   let vaultItems = userData.boxItems || [];
   let vaultInventory = new Inventory(vaultItems, 100);
+
   async function createList() {
     const vaultItemsList = vaultInventory.getAll();
-    let pushedKeys = [];
-    let vaultItemList = vaultItemsList
-      .map((item) => {
-        if (pushedKeys.includes(item.key)) {
-          return null;
-        }
-        const amount = vaultInventory.getAmount(item.key);
-        pushedKeys.push(item.key);
-        return `${item.icon} ${
-          amount > 1 ? `**x${amount}** ${UNIRedux.charm} ` : ""
-        }${item.name} (${item.key})`;
-      })
-      .filter(Boolean)
-      .join("\n");
-    vaultItemList ||= "[ Empty ]";
     const invItemsList = userInventory.getAll();
-    let pushedKeys2 = [];
-    let invItemList = invItemsList
-      .map((item) => {
-        if (pushedKeys2.includes(item.key)) {
-          return null;
-        }
-        const amount = userInventory.getAmount(item.key);
 
-        pushedKeys2.push(item.key);
-        return `${item.icon} ${
-          amount > 1 ? `**x${amount}** ${UNIRedux.charm} ` : ""
-        }${item.name} (${item.key})`;
-      })
-      .filter(Boolean)
-      .join("\n");
-    invItemList ||= "[ Empty ]";
-    const arrayInv = invItemList.split("\n");
-    const diff = 8 - arrayInv.length;
-    for (let i = 0; i < diff; i++) {
-      arrayInv.push("");
-    }
-    let result = [];
-    arrayInv.forEach((val) => {
-      if (!val) {
-        result.push("_".repeat(15));
-      }
+    let vaultItemList = `${UNIRedux.arrow} ***Vault Items***\n\n`;
+    let invItemList = `${UNIRedux.arrow} ***Inventory Items***\n\n`;
+
+    const invCounts = new Map();
+    invItemsList.forEach((item) => {
+      invCounts.set(item.key, (invCounts.get(item.key) || 0) + 1);
     });
-    if (result) {
-      invItemList += `\n`;
-    }
-    invItemList += result.join("\n");
+    invItemList +=
+      invCounts.size > 0
+        ? Array.from(invCounts.entries())
+            .map(([key, count]) => {
+              const item = invItemsList.find((i) => i.key === key);
+              return `${item.icon} **${item.name}**${
+                count > 1 ? ` (x${count})` : ""
+              } [${item.key}]`;
+            })
+            .join("\n")
+        : "No items available.";
 
-    const arrayvault = vaultItemList.split("\n");
-    const diff2 = 8 - arrayvault.length;
-    for (let i = 0; i < diff2; i++) {
-      arrayvault.push("");
-    }
-    let result2 = [];
-    arrayvault.forEach((val) => {
-      if (!val) {
-        result2.push("_".repeat(15));
-      }
+    const vaultCounts = new Map();
+    vaultItemsList.forEach((item) => {
+      vaultCounts.set(item.key, (vaultCounts.get(item.key) || 0) + 1);
     });
-    if (result2) {
-      vaultItemList += `\n`;
-    }
-    vaultItemList += result2.join("\n");
-    vaultItemList += `\n...[ ${
-      100 - vaultInventory.getAll().length
-    } Free Slots ]`;
+    vaultItemList +=
+      vaultCounts.size > 0
+        ? Array.from(vaultCounts.entries())
+            .map(([key, count]) => {
+              const item = vaultItemsList.find((i) => i.key === key);
+              return `${item.icon} **${item.name}**${
+                count > 1 ? ` (x${count})` : ""
+              } [${item.key}]`;
+            })
+            .join("\n")
+        : "No items available.";
 
-    return `**🎒 Inventory ${
-      UNIRedux.charm
-    } ${userInventory.size()}/${invLimit}** (${Math.floor(
-      (userInventory.size() / invLimit) * 100
-    )}%)\n\n${invItemList}\n${UNIRedux.standardLine}\n**🔒 Vault ${
-      UNIRedux.charm
-    } ${vaultInventory.size()}/100** (${Math.floor(
-      (vaultInventory.size() / 100) * 100
-    )}%)\n\n${vaultItemList}`;
+    return (
+      `👤 **${
+        userData.name || "Unregistered"
+      }** (**${userInventory.size()}/${invLimit}**)\n\n` +
+      `${invItemList}\n\n` +
+      `${UNIRedux.standardLine}\n` +
+      `🗃️ **Vault** (**${vaultInventory.size()}/100**)\n\n` +
+      `${vaultItemList}`
+    );
   }
 
   const home = new ReduxCMDHome(
@@ -150,7 +120,6 @@ export async function entry(ctx) {
         description: "Check someone's items.",
         args: ["<uid>"],
         aliases: ["-c"],
-
         async handler() {
           const {
             inventory = [],
@@ -158,25 +127,20 @@ export async function entry(ctx) {
             name = "Unregistered",
           } = await money.get(actionArgs[0]);
           vaultInventory = new Inventory(vaultItems, 100);
-          userInventory = new Inventory(inventory, 100);
-          await output.reply(`Checking **${name}**:
-    
-    ${await createList()}`);
-          return;
+          userInventory = new Inventory(inventory);
+          return output.reply(`✅ Checking ${name}\n\n${await createList()}`);
         },
       },
       {
         key: "store",
         aliases: ["-s"],
-
         description: "Store an item from your inventory into the vault.",
         args: ["<key1> <key2> <...etc>"],
         async handler() {
           const keysToStore = actionArgs;
-
           if (keysToStore.length < 1) {
             return output.reply(
-              `❌ Please specify an item key to store in the vault\n\n${await createList()}`
+              `❌ Please specify an item key to store.\n\n${await createList()}`
             );
           }
           let str = ``;
@@ -187,60 +151,56 @@ export async function entry(ctx) {
               continue;
             }
             if (vaultInventory.getAll().length >= 100) {
-              str += `❌ The vault inventory is full.\n`;
+              str += `❌ The vault is full.\n`;
               continue;
             }
             if (itemToStore.cannotvault === true) {
-              str += `❌ Item with key "${keyToStore}" cannot be stored in the vault.\n`;
+              str += `❌ "${keyToStore}" can’t be stored in the vault.\n`;
               continue;
             }
             userInventory.deleteOne(keyToStore);
             vaultInventory.addOne(itemToStore);
-
-            str += `✅ Stored ${itemToStore.icon} ${itemToStore.name} in the vault.\n`;
+            str += `✅ Stored ${itemToStore.icon} **${itemToStore.name}** in the vault.\n`;
           }
           await money.set(input.senderID, {
             inventory: Array.from(userInventory),
             boxItems: Array.from(vaultInventory),
           });
-
           return output.reply(`${str.trim()}\n\n${await createList()}`);
         },
       },
       {
         key: "retrieve",
         aliases: ["-r"],
-
         description: "Retrieve an item from the vault into your inventory.",
         args: ["<key1> <key2> <...etc>"],
         async handler() {
           const keysToRetrieve = actionArgs;
           if (keysToRetrieve.length < 1) {
             return output.reply(
-              `❌ Please specify an item key to retrieve from the vault.\n\n${await createList()}`
+              `❌ Please specify an item key to retrieve.\n\n${await createList()}`
             );
           }
-          let str2 = ``;
+          let str = ``;
           for (const keyToRetrieve of keysToRetrieve) {
             const itemToRetrieve = vaultInventory.getOne(keyToRetrieve);
             if (!itemToRetrieve) {
-              str2 += `❌ Item with key "${keyToRetrieve}" not found in the vault.\n`;
+              str += `❌ Item with key "${keyToRetrieve}" not found in the vault.\n`;
               continue;
             }
             if (userInventory.getAll().length >= invLimit) {
-              str2 += `❌ Your Inventory is full.\n`;
+              str += `❌ Your inventory is full.\n`;
               continue;
             }
             vaultInventory.deleteOne(keyToRetrieve);
             userInventory.addOne(itemToRetrieve);
-            str2 += `✅ Retrieved ${itemToRetrieve.icon} ${itemToRetrieve.name} from the vault.\n`;
+            str += `✅ Retrieved ${itemToRetrieve.icon} **${itemToRetrieve.name}** from the vault.\n`;
           }
           await money.set(input.senderID, {
             inventory: Array.from(userInventory),
             boxItems: Array.from(vaultInventory),
           });
-
-          return output.reply(`${str2.trim()}\n\n${await createList()}`);
+          return output.reply(`${str.trim()}\n\n${await createList()}`);
         },
       },
     ]

@@ -70,16 +70,19 @@ class IndexedDBMap {
       const request = indexedDB.open(this.dbName, 1);
 
       request.onupgradeneeded = (event) => {
+        // @ts-ignore
         const db = event.target.result;
         db.createObjectStore(this.storeName, { keyPath: "key" });
       };
 
       request.onsuccess = (event) => {
+        // @ts-ignore
         this.db = event.target.result;
         resolve();
       };
 
       request.onerror = (event) => {
+        // @ts-ignore
         reject(new Error("Failed to open IndexedDB: " + event.target.error));
       };
     });
@@ -322,6 +325,7 @@ window.onload = async () => {
    */
   function scrollA(e) {
     if (isScrolledBottom(e, 20)) {
+      // @ts-ignore
       smoothScroll2(e);
     }
   }
@@ -348,6 +352,7 @@ window.onload = async () => {
     if (c.message) {
       // Just iterate the shit
       appendSend({ message: c.message, chatPad });
+      // @ts-ignore
       smoothScroll2(ccc);
       continue;
     }
@@ -359,10 +364,12 @@ window.onload = async () => {
       chatPad,
       attachmentPromise: imageMap.get(c.messageID),
     });
+    // @ts-ignore
     smoothScroll2(ccc);
   }
 
   // After a lot of appending, we gonna scroll the entire page.
+  // @ts-ignore
   smoothScroll2(ccc);
 
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -386,10 +393,12 @@ window.onload = async () => {
         break;
       case "message":
         handleMessage(data);
+        // @ts-ignore
         smoothScroll2(ccc);
         break;
       case "message_reply":
         handleMessage(data);
+        // @ts-ignore
         smoothScroll2(ccc);
         break;
       case "message_edit":
@@ -570,7 +579,7 @@ function appendRep({
       // photoBox.src =
       //   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAQSURBVHgBAW/AAwAAAAAAAA+fASK7JIQZAAAAAElFTkSuQmCC";
       wrapper.append(userMessage);
-
+      let innerMenu;
       (async () => {
         /**
          * @type {unknown[] | undefined}
@@ -596,7 +605,128 @@ function appendRep({
             photoBox?.classList.add("photo-box", "response-message");
             // photoBox.src = `data:image/png;base64,${attachment}`;
             // console.log(attachment);
+
             try {
+              const ctxmenu = new ContextMenu(photoBox, {
+                /**
+                 * @param {{ clientY: number; }} event
+                 */
+                onOpen(event) {
+                  // @ts-ignore
+                  event.stopPropagation();
+                  photoBox.style.pointerEvents = "none";
+                  const rect1 = photoBox.getBoundingClientRect();
+                  ctxmenu.menu.style.width = `${rect1.width}px`;
+                  photoBox.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                  });
+                  const blur = document.createElement("div");
+                  blur.classList.add("blur-bg");
+                  blur.addEventListener("click", () => {
+                    ctxmenu.hide();
+                  });
+                  const reactOpt = document.createElement("div");
+                  reactOpt.classList.add("react-c");
+                  reS = reactOpt;
+
+                  reactOpt.innerHTML = "";
+                  for (const emoji of emojis) {
+                    reactOpt.innerHTML += `<span onclick="sendReact('${emoji}', '${messageID}')" style="font-size: 30px;">${emoji}</span>  `;
+                  }
+
+                  blurS = blur;
+                  setTimeout(() => {
+                    const rect = photoBox.getBoundingClientRect();
+                    ctxmenu.show({
+                      clientY: rect.bottom + 20,
+                      clientX: rect.left,
+                    });
+
+                    const clone = photoBox.cloneNode(true);
+                    if (clone instanceof HTMLElement) {
+                      clone.classList.add("center-fixed");
+                      clone.style.left = rect.left + "px";
+                      clone.style.right = rect.right + "px";
+                      clone.style.top = rect.top + "px";
+                      clone.style.bottom = rect.bottom + "px";
+                      clone.style.width = rect.width + "px";
+                      clone.style.height = rect.height + "px";
+
+                      // @ts-ignore
+                      reactOpt.disabled = false;
+
+                      reactOpt.style.left = rect.left + "px";
+                      reactOpt.style.right = rect.right + "px";
+                      // reactOpt.style.bottom = rect.bottom + "px";
+
+                      document.body.appendChild(clone);
+                      document.body.appendChild(reactOpt);
+                      // reactOpt.style.top = event.clientY - reactOpt.clientHeight + "px";
+
+                      let newTop = rect.top - reactOpt.clientHeight - 20;
+                      let alternativeTop =
+                        event.clientY - reactOpt.clientHeight;
+
+                      if (newTop < 0) {
+                        newTop = alternativeTop;
+                      } else if (
+                        newTop + reactOpt.clientHeight >
+                        window.innerHeight
+                      ) {
+                        newTop = window.innerHeight - reactOpt.clientHeight;
+                      }
+
+                      reactOpt.style.top = `${newTop}px`;
+
+                      cloneS = clone;
+                    }
+                    document.body.appendChild(blur);
+                  }, 300);
+                },
+                onClose() {
+                  if (cloneS instanceof HTMLElement) {
+                    cloneS.remove();
+                  }
+                  if (blurS instanceof HTMLElement) {
+                    blurS.remove();
+                  }
+                  photoBox.style.pointerEvents = "";
+                  if (reS instanceof HTMLElement) {
+                    reS.remove();
+                  }
+                },
+                items: [
+                  // {
+                  //   label: "React",
+                  //   svgIcon: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368"><path d="M800-680v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80ZM620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520Zm140 260q68 0 123.5-38.5T684-400H276q25 63 80.5 101.5T480-260Zm0 180q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q43 0 83 8.5t77 24.5v167h80v80h142q9 29 13.5 58.5T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/></svg>`,
+                  //   async callback() {
+                  //     chooseReaction(messageID);
+                  //   },
+                  // },
+                  {
+                    label: "Reply",
+                    // @ts-ignore
+                    svgIcon: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368"><path d="M760-200v-160q0-50-35-85t-85-35H273l144 144-57 56-240-240 240-240 57 56-144 144h367q83 0 141.5 58.5T840-360v160h-80Z"/></svg>`,
+                    async callback() {
+                      reply(messageID);
+                    },
+                  },
+                  {
+                    label: "View",
+                    // @ts-ignore
+                    svgIcon: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368"><path d="M760-200v-160q0-50-35-85t-85-35H273l144 144-57 56-240-240 240-240 57 56-144 144h367q83 0 141.5 58.5T840-360v160h-80Z"/></svg>`,
+                    async callback() {
+                      photoBox.click();
+                    },
+                  },
+                ],
+                allowance: 20,
+                bottom: true,
+              });
+
+              innerMenu = ctxmenu;
+
               enhanceImage(photoBox);
             } catch (error) {}
             userMessage.after(photoBox);
@@ -604,7 +734,7 @@ function appendRep({
           }
         }
       })();
-
+      autoParseUrlsAsAnchors(userMessage);
       messageContainer.append(wrapper);
 
       // chatPad.appendChild(messageContainer);
@@ -659,6 +789,7 @@ function appendRep({
               clone.style.width = rect.width + "px";
               clone.style.height = rect.height + "px";
 
+              // @ts-ignore
               reactOpt.disabled = false;
 
               reactOpt.style.left = rect.left + "px";
@@ -707,6 +838,7 @@ function appendRep({
           // },
           {
             label: "Reply",
+            // @ts-ignore
             svgIcon: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368"><path d="M760-200v-160q0-50-35-85t-85-35H273l144 144-57 56-240-240 240-240 57 56-144 144h367q83 0 141.5 58.5T840-360v160h-80Z"/></svg>`,
             async callback() {
               reply(messageID);
@@ -714,6 +846,7 @@ function appendRep({
           },
           {
             label: "Copy",
+            // @ts-ignore
             svgIcon: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368"><path d="M160-40q-33 0-56.5-23.5T80-120v-560h80v560h440v80H160Zm160-160q-33 0-56.5-23.5T240-280v-560q0-33 23.5-56.5T320-920h280l240 240v400q0 33-23.5 56.5T760-200H320Zm240-440h200L560-840v200Z"/></svg>`,
             async callback() {
               const [bodyHTML, trueBody] = String(
@@ -729,6 +862,11 @@ function appendRep({
       });
 
       ctxmenu.init();
+
+      if (innerMenu) {
+        // @ts-ignore
+        innerMenu.init();
+      }
     }
   }
 }
@@ -739,9 +877,12 @@ function appendRep({
  */
 function togOpt(messageID) {
   const elem = document.querySelector(`#${messageID}_options`);
+  // @ts-ignore
   if (elem.style.display !== "none") {
+    // @ts-ignore
     elem.style.display = "none";
   } else {
+    // @ts-ignore
     elem.style.display = "block";
   }
 }
@@ -749,6 +890,7 @@ function togOpt(messageID) {
  * @param {any} id
  */
 function xCopy(id) {
+  // @ts-ignore
   copyToClipboard(document.querySelector(`#${id}_text`).innerText);
 }
 // this one also appends but it's a little different one, it appends messages sent by YOU
@@ -786,6 +928,7 @@ function appendSend({ message, chatPad }) {
       }
       wrapper.append(userMessage);
       messageContainer.append(wrapper);
+      autoParseUrlsAsAnchors(userMessage);
 
       chatPad.appendChild(messageContainer);
       animateSend(userMessage);
@@ -846,14 +989,17 @@ function appendSend({ message, chatPad }) {
         items: [
           {
             label: "React",
+            // @ts-ignore
             svgIcon: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368"><path d="M800-680v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80ZM620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520Zm140 260q68 0 123.5-38.5T684-400H276q25 63 80.5 101.5T480-260Zm0 180q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q43 0 83 8.5t77 24.5v167h80v80h142q9 29 13.5 58.5T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/></svg>`,
             async callback() {
+              // @ts-ignore
               chooseReaction(messageID);
             },
           },
 
           {
             label: "Copy",
+            // @ts-ignore
             svgIcon: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368"><path d="M160-40q-33 0-56.5-23.5T80-120v-560h80v560h440v80H160Zm160-160q-33 0-56.5-23.5T240-280v-560q0-33 23.5-56.5T320-920h280l240 240v400q0 33-23.5 56.5T760-200H320Zm240-440h200L560-840v200Z"/></svg>`,
             async callback() {
               await navigator.clipboard.writeText(message);
@@ -880,11 +1026,13 @@ function handleMessage(data) {
     infos[data.messageID] = data;
   }
   if (data.botSend || !data.isYou) {
+    // @ts-ignore
     appendRep({
       body: data.body,
       messageID: data.messageID,
       chatPad,
       botSend: data.botSend,
+      // @ts-ignore
       attachment: data.attachment,
     });
   } else {
@@ -907,6 +1055,7 @@ document.addEventListener("keydown", (event) => {
 
   const messageBox = document.querySelector("#userText");
   if (!document.activeElement || document.activeElement === document.body) {
+    // @ts-ignore
     messageBox.focus();
   }
 });
@@ -925,6 +1074,7 @@ document.addEventListener("keydown", function (event) {
 async function send(isReply, mid, extra = {}) {
   const messageDoc = document.querySelector("#userText");
 
+  // @ts-ignore
   const message = messageDoc.value.trim();
   if (!message) {
     return alert(
@@ -941,6 +1091,7 @@ async function send(isReply, mid, extra = {}) {
   };
   ws.send(JSON.stringify(payload.params));
 
+  // @ts-ignore
   messageDoc.value = "";
   adjustRows();
   await fetchUserCache(panelID, true);
@@ -957,9 +1108,13 @@ function chooseReaction(messageID) {
   for (const emoji of emojis) {
     reactOptions.innerHTML += `<span onclick="sendReact('${emoji}', '${messageID}')" style="font-size: 30px;">${emoji}</span>  `;
   }
+  // @ts-ignore
   reactOpt.style.display = "block";
+  // @ts-ignore
   reactOpt.disabled = false;
+  // @ts-ignore
   reactBG.style.display = "block";
+  // @ts-ignore
   reactBG.disabled = false;
 }
 /**
@@ -984,6 +1139,7 @@ function sendReact(reaction, messageID) {
  * @param {string | number} mid
  */
 async function sendOld(isReply, mid, extra = {}) {
+  // @ts-ignore
   const message = document.getElementById("userText").value?.trim();
   if (!message) {
     return alert(
@@ -991,6 +1147,7 @@ async function sendOld(isReply, mid, extra = {}) {
     );
   }
   const chatPad = document.getElementById("chatPad");
+  // @ts-ignore
   document.getElementById("userText").value = "";
   try {
     let appended = message;
@@ -1017,6 +1174,7 @@ ${message}`;
       payload = {
         params: {
           type: "message_reaction",
+          // @ts-ignore
           messageID,
           reaction: message,
           userID: panelID,
@@ -1026,12 +1184,14 @@ ${message}`;
     }
     appendSend({ message: appended, chatPad });
     smoothScroll();
+    // @ts-ignore
     const response = await axios.get(`/postWReply`, payload);
     const {
       result,
       result: { body, messageID },
     } = response.data;
     infos[messageID] = result;
+    // @ts-ignore
     appendRep({ messageID, body, chatPad });
     smoothScroll();
   } catch (err) {
@@ -1063,9 +1223,11 @@ function sanitize(input) {
 const textarea = document.getElementById("userText");
 const MAX_ROWS = 7;
 function adjustRows() {
+  // @ts-ignore
   const lines = textarea.value.split("\n");
   const rowCount = Math.min(lines.length, MAX_ROWS);
 
+  // @ts-ignore
   textarea.setAttribute("rows", rowCount);
 
   const ccc = document.querySelector("#ccc");
@@ -1159,6 +1321,7 @@ class ContextMenu {
    */
   constructor(
     element,
+    // @ts-ignore
     {
       menu,
       bottom,
@@ -1204,6 +1367,7 @@ class ContextMenu {
    *   [etc]: Object
    * }} option - The menu option to add.
    */
+  // @ts-ignore
   addOption({ label, callback, svgIcon, ...etc }) {
     const e = document.createElement("div");
     e.classList.add("item");
@@ -1272,6 +1436,7 @@ class ContextMenu {
    */
   updateOption(oldLabel, { label, callback, ...etc }) {
     const items = this.menu.querySelectorAll(".item");
+    // @ts-ignore
     for (const item of items) {
       if (item.textContent === oldLabel) {
         item.textContent = label;
@@ -1296,6 +1461,7 @@ class ContextMenu {
       overflowY: "auto",
       maxHeight: "90vh",
     });
+    // @ts-ignore
     const { target, menu } = this;
     for (const data of this.items) {
       this.addOption(data);
@@ -1352,6 +1518,7 @@ class ContextMenu {
    * Hides the context menu with an animation.
    */
   hide() {
+    // console.log(this.hide?.caller);
     this.menu.style.animation = "closeApp 0.2s ease-out forwards";
 
     setTimeout(() => {
@@ -1370,6 +1537,7 @@ class ContextMenu {
    *
    * @param {{ clientX?: number, clientY?: number }} [position] - The position to show the menu at.
    */
+  // @ts-ignore
   show({ clientX = 0, clientY = 0, isRight = false } = {}) {
     const { menu, isBottom, allowance } = this;
     const { innerWidth, innerHeight } = window;
@@ -1501,6 +1669,7 @@ function enhanceImage(imgElement) {
   `;
 
   const enlargedImg = imgElement.cloneNode();
+  // @ts-ignore
   enlargedImg.style.cssText = `
       position: fixed;
       max-width: 90vw;
@@ -1515,15 +1684,21 @@ function enhanceImage(imgElement) {
   function centerImage() {
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
+    // @ts-ignore
     const imgWidth = enlargedImg.width;
+    // @ts-ignore
     const imgHeight = enlargedImg.height;
 
+    // @ts-ignore
     enlargedImg.style.left = `${(windowWidth - imgWidth) / 2}px`;
+    // @ts-ignore
     enlargedImg.style.top = `${(windowHeight - imgHeight) / 2}px`;
   }
 
   function closeImage() {
+    // @ts-ignore
     enlargedImg.style.opacity = "0";
+    // @ts-ignore
     enlargedImg.style.transform = "scale(0.8)";
     overlay.style.opacity = "0";
 
@@ -1544,15 +1719,19 @@ function enhanceImage(imgElement) {
     document.body.appendChild(overlay);
     document.body.appendChild(enlargedImg);
 
+    // @ts-ignore
     enlargedImg.offsetWidth;
 
     centerImage();
     overlay.style.background = "rgba(0, 0, 0, 0.8)";
     overlay.style.opacity = "1";
+    // @ts-ignore
     enlargedImg.style.opacity = "1";
+    // @ts-ignore
     enlargedImg.style.transform = "scale(1)";
     overlay.style.pointerEvents = "auto";
   });
+  // @ts-ignore
   window.addEventListener("click", (e) => {
     closeImage();
   });
@@ -1562,4 +1741,53 @@ function enhanceImage(imgElement) {
       centerImage();
     }
   });
+}
+function autoParseUrlsAsAnchors(element) {
+  if (!element || !(element instanceof Element)) return;
+
+  const urlRegex = /(\b(?:https?:\/\/|www\.)[^\s<>]+)/gi;
+
+  function processNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.nodeValue;
+      const parent = node.parentNode;
+      let lastIndex = 0;
+      let match;
+
+      urlRegex.lastIndex = 0;
+      const fragment = document.createDocumentFragment();
+
+      while ((match = urlRegex.exec(text)) !== null) {
+        const url = match[0];
+        const start = match.index;
+
+        if (start > lastIndex) {
+          fragment.appendChild(
+            document.createTextNode(text.slice(lastIndex, start))
+          );
+        }
+
+        const a = document.createElement("a");
+        a.href = url.startsWith("http") ? url : `http://${url}`;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = url;
+        fragment.appendChild(a);
+
+        lastIndex = urlRegex.lastIndex;
+      }
+
+      if (lastIndex < text.length) {
+        fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+      }
+
+      if (fragment.childNodes.length) {
+        parent.replaceChild(fragment, node);
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      Array.from(node.childNodes).forEach(processNode);
+    }
+  }
+
+  processNode(element);
 }

@@ -49,8 +49,11 @@ export const entry = defineEntry(
 
     let ensure = await money.ensureUserInfo(uid);
     if (!ensure) {
-      return output.wentWrong();
+      return output.reply(`❌ We cannot find your profile picture.`);
     }
+
+    const i = await output.reply("⏳ ***Generating***\n\nPlease wait...");
+
     const { userMeta } = await money.getItem(uid);
 
     try {
@@ -68,6 +71,8 @@ export const entry = defineEntry(
         body: `📝 Quote from ***${userMeta.name}***:`,
         attachment: res.data,
       });
+
+      await output.unsend(i.messageID);
     } catch (error) {
       return output.error(error);
     }

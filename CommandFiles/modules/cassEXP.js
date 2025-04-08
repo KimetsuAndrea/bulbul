@@ -543,11 +543,10 @@ export class CassQuest {
    *
    * @param {string} questKey - The key of the quest.
    * @param {number} [steps=1] - The number of steps to advance.
-   * @throws {Error} If the quest does not exist.
    */
   advanceIfHas(questKey, steps = 1) {
     if (!this.has(questKey)) {
-      throw new Error(`Quest with key ${questKey} does not exist.`);
+      return;
     }
     this.advance(questKey, steps);
   }

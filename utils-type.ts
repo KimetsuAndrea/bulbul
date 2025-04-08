@@ -155,17 +155,15 @@ declare function pearsonsR(arrayA: any, arrayB: any): number;
 declare const ObjectX: {};
 declare const LiaSystem: Object;
 declare function ExtendClass<
-  T extends new (...args: any[]) => any = ObjectConstructor
+  T extends new (...args: any[]) => any,
+  K extends keyof InstanceType<T>
 >(
-  key: string,
-  func: (this: InstanceType<T>) => any,
+  key: K,
+  func: (this: InstanceType<T>, ...args: Parameters<InstanceType<T>[K]>) => any,
   Target?: T,
-  options?: {
-    writable: boolean;
-    configurable: boolean;
-    enumerable: boolean;
-  }
+  options?: PropertyDescriptor
 ): void;
+
 declare function reverseKeyValue(obj: any): {};
 declare class XYZ {
   constructor({

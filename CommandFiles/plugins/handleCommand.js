@@ -225,7 +225,7 @@ export async function use(obj) {
         }
         let text = `🔒 | The command "${meta.name}" is available in the **shop** with a price of ${price}$`;
         if (isAffordable) {
-          text += `\n\n✨ You have enough money to **purchase** this command!\n\n**Example**: ${prefix}shop-cmd buy ${meta.name}`;
+          text += `\n\n✨ You have enough money to **purchase** this command!\n\n**Example**: ${prefix}buy ${meta.name}`;
         }
         await output.reply(text);
         return;

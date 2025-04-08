@@ -61,6 +61,9 @@ const littlejohnSimulation = {
     },
   ],
   actionEmoji: "🏗️",
+  stoData: {
+    price: 20,
+  },
 };
 
 export async function entry({ GameSimulator }) {

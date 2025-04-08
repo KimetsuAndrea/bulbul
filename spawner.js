@@ -230,4 +230,5 @@ Error.prepareStackTrace = (error, structuredStack) => {
 };
 
 require("./hidestate");
+
 require("./Cassidy");

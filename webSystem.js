@@ -43,12 +43,14 @@ export class Listener {
             mqttRestart ??= d;
             mqttRestart = Object.assign({}, d, mqttRestart);
           }
-          setInterval(() => {
-            global.logger("Stops listening...", "MQTT");
-            e?.stopListening?.();
-            alive = false;
-            setupFB();
-          }, mqttRestart.interval);
+          if (mqttRestart.enabled) {
+            setInterval(() => {
+              global.logger("Stops listening...", "MQTT");
+              e?.stopListening?.();
+              alive = false;
+              setupFB();
+            }, mqttRestart.interval);
+          }
         } catch (error) {
           console.error("Cant setup mqtt restart.");
         }
@@ -401,7 +403,7 @@ export class WssAPI {
       (resAt ?? []).map(async (i) => {
         const buffer = Buffer.from(i, "base64");
         const type = await fileTypeFromBuffer(buffer);
-        return type.mime;
+        return type?.mime;
       })
     );
     const self = this;

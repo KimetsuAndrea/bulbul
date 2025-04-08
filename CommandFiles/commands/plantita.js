@@ -214,6 +214,9 @@ const plantitaSimulation = {
   ],
   actionEmoji: "🌻",
   initialStorage: 40,
+  stoData: {
+    price: 100,
+  },
 };
 
 export async function entry({ GameSimulator }) {

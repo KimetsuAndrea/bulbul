@@ -1,5 +1,5 @@
-CassidyBoT License - Version 2.5.0
-(CassidyRedux)
+CassidyBoT License - Version 3.0.0
+(CassidySpectra)
 
 Copyright (c) Liane Cagara (@lianecagara)
 
@@ -8,9 +8,9 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 Attribution
 a. The original author's name, Liane Cagara (@lianecagara), must be preserved and clearly credited in any use of the Software.
 
-Restrictions
-a. Redistribution of the Software, whether in its original form or modified, is strictly prohibited.
-b. Modification, reverse engineering, or creation of derivative works based on this Software is not permitted.
+Restrictions  
+a. Redistribution of the Software, whether in its original form or modified, is permitted only if the project is renamed or a derivative work is created.  
+b. Forks or redistributions must not use the name "CassidySpectra." Instead, they must use a name that begins with "Cassidy-" (e.g., CassidyGalaxy).  
 
 License Integrity
 a. This license must be included in all copies of the Software provided to users.
@@ -22,6 +22,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 Termination of Rights
 Failure to comply with the terms of this license will immediately terminate your rights to use the Software.
 
-By using CassidyBoT 2.5.0 (CassidyRedux), you agree to the terms outlined in this license.
+By using CassidyBoT 3.0.0 (CassidySpectra), you agree to the terms outlined in this license.
 
 End of License

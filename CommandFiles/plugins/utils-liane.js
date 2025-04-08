@@ -1,3 +1,4 @@
+// @ts-check
 export const meta = {
   name: "utils-liane",
   author: "Liane Cagara",
@@ -28,7 +29,7 @@ import fs from "fs";
 import { ReduxCMDHome } from "@cassidy/redux-home";
 import { stoData } from "../modules/stoData.js";
 import { CassEXP } from "../modules/cassEXP.js";
-import { clamp } from "@cassidy/unispectra";
+import { clamp, UNIRedux } from "@cassidy/unispectra";
 import { SpectralCMDHome } from "../modules/spectralCMDHome";
 const moment = require("moment-timezone");
 
@@ -658,7 +659,7 @@ export async function use(obj) {
   obj.MsgEditor = MessageEditor;
   obj.Editor = MessageEditor;
 
-  class GameSimulator {
+  class GameSimulatorRedux {
     static instances = {};
     constructor({
       key,
@@ -671,7 +672,7 @@ export async function use(obj) {
       actionEmoji = "🔖",
       stoData,
     }) {
-      GameSimulator.instances[key] = this;
+      GameSimulatorRedux.instances[key] = this;
       this.key = key;
       this.verb = verb;
       this.verbing = verbing;
@@ -1324,7 +1325,682 @@ export async function use(obj) {
   }
   obj.ItemPrompt = ItemPrompt;
 
+  class GameSimulator {
+    static instances = {};
+
+    constructor({
+      key,
+      verb = key.charAt(0).toUpperCase() + key.slice(1),
+      verbing = verb + "ing",
+      pastTense = verb + "ed",
+      checkIcon = "✅",
+      initialStorage = 30,
+      itemData = [],
+      actionEmoji = "🎉",
+      stoData,
+    }) {
+      GameSimulator.instances[key] = this;
+      this.key = key;
+      this.verb = verb;
+      this.verbing = verbing;
+      this.pastTense = pastTense;
+      this.checkIcon = checkIcon;
+      this.actionEmoji = actionEmoji;
+      this.storage = initialStorage;
+      this.stoData = stoData;
+      this.itemData = itemData.map((i) => ({
+        ...i,
+        priceA: i.priceA * 10,
+        priceB: i.priceB * 10,
+        streak: 0,
+      }));
+    }
+
+    async simulateAction(context = obj) {
+      const {
+        input,
+        output,
+        money,
+        args,
+        prefix,
+        CassExpress,
+        Inventory,
+        commandName,
+      } = context;
+      const self = this;
+      const now = Date.now();
+
+      const {
+        [self.key + "Energy"]: currentEnergy = 100,
+        [self.key + "EnergyStamp"]: energyStamp = now,
+        carsData: rawCarsData = [],
+        petsData: rawPetsData = [],
+        ...rest
+      } = await money.get(input.senderID);
+
+      const carsData = new Inventory(rawCarsData || []);
+      const petsData = new Inventory(rawPetsData || []);
+      const activeCars = carsData
+        .getAll()
+        .filter((car) => Array.isArray(car.pets) && car.pets.length > 0)
+        .map((car) => updateCarData(car));
+
+      const avgSpeed =
+        activeCars.length > 0
+          ? activeCars.reduce((sum, car) => sum + car.maxSpeed, 0) /
+            activeCars.length
+          : 100;
+      const baseRegenInterval = 300000;
+      const regenInterval = Math.max(
+        60000,
+        baseRegenInterval - Math.floor((avgSpeed - 100) * 1000)
+      );
+      const elapsedMs = now - energyStamp;
+      const regenAmount = Math.floor(elapsedMs / regenInterval);
+      const newEnergy = Math.min(200, currentEnergy + regenAmount);
+
+      if (newEnergy !== currentEnergy || energyStamp === now) {
+        await money.set(input.senderID, {
+          [self.key + "Energy"]: newEnergy,
+          [self.key + "EnergyStamp"]: now,
+        });
+      }
+
+      const home = new SpectralCMDHome({ isHypen: true, defaultKey: "help" }, [
+        {
+          key: "total",
+          description: "Check your total yields and stats!",
+          aliases: ["-t"],
+          async handler() {
+            const {
+              [self.key + "Total"]: totalItems = {},
+              name = "Unregistered",
+            } = await money.get(input.senderID);
+            if (!name) {
+              return output.reply(
+                `👤 **??** (??)\n\n` +
+                  `❌ Yo! Register with "identity-setname" first, fam!`
+              );
+            }
+
+            let result =
+              `👤 **${name}** (${self.key})\n\n` +
+              `${UNIRedux.arrow} ***Total ${self.verb}ed Loot***\n\n`;
+            const sortedItems = Object.entries(totalItems).sort(
+              (a, b) => b[1] - a[1]
+            );
+            sortedItems.forEach(([itemName, itemCount]) => {
+              const data = self.itemData.find((item) => item.name === itemName);
+              result +=
+                `${self.checkIcon} ${
+                  data.icon
+                } **${itemName}** (x${itemCount}) [${data.name.toLowerCase()}]\n` +
+                `Rarity: ${100 - data.chance * 100}%\n` +
+                `Time: ${data.delay} min\n` +
+                `Price: ${data.priceA}-${data.priceB}$\n\n`;
+            });
+            const total = Object.values(totalItems).reduce(
+              (acc, count) => acc + count,
+              0
+            );
+            result += total
+              ? `Total Haul: ${total}`
+              : `❌ Nothing ${self.pastTense} yet!`;
+            return output.reply(result);
+          },
+        },
+        {
+          key: "check",
+          description: "See your tuned items and timers!",
+          async handler() {
+            const {
+              [self.key + "Stamp"]: actionStamp,
+              [self.key + "MaxZ"]: actionMax = self.storage,
+              [self.key + "Tune"]: actionTune = [],
+              [self.key + "Energy"]: energy = 100,
+              name = "Unregistered",
+              carsData: rawCarsData = [],
+              petsData: rawPetsData = [],
+            } = await money.get(input.senderID);
+
+            const carsData = new Inventory(rawCarsData || []);
+            const petsData = new Inventory(rawPetsData || []);
+            const activeCars = carsData
+              .getAll()
+              .filter((car) => Array.isArray(car.pets) && car.pets.length > 0)
+              .map((car) => updateCarData(car));
+
+            const totalSpeed = activeCars.reduce(
+              (sum, car) => sum + (car.maxSpeed - 100),
+              0
+            );
+            const totalEfficiency = activeCars.reduce(
+              (sum, car) => sum + car.fuelEfficiency,
+              0
+            );
+            const totalDurability = activeCars.reduce(
+              (sum, car) => sum + car.durability,
+              0
+            );
+            const totalLevel = activeCars.reduce(
+              (sum, car) => sum + car.level,
+              0
+            );
+            const levelMultiplier =
+              1 + totalLevel / (activeCars.length || 1) / 10;
+
+            const regenBonus = Math.floor(totalSpeed * 1000);
+            const yieldChanceBonus = (totalSpeed / 1000) * levelMultiplier;
+            const energyCostReduction = Math.floor(
+              totalEfficiency * 10 * levelMultiplier
+            );
+            const storageBonus = Math.floor(
+              totalDurability * 5 * levelMultiplier
+            );
+
+            const formatTime = (ms) => {
+              const secs = Math.floor(ms / 1000) % 60;
+              const mins = Math.floor(ms / (1000 * 60)) % 60;
+              const hrs = Math.floor(ms / (1000 * 60 * 60));
+              return hrs > 0
+                ? `${hrs}h ${mins}m ${secs}s`
+                : `${mins}m ${secs}s`;
+            };
+
+            let result =
+              `👤 **${name}** (${self.key})\n\n` +
+              `⚡ Energy: ${energy}/200 (Regen: ~${formatTime(
+                regenInterval
+              )})\n` +
+              `🗃️ Storage: ${
+                actionMax + storageBonus
+              } (${actionMax} + ${storageBonus} from cars)\n\n`;
+            if (!actionStamp) {
+              result += `❌ Nothing’s ${self.verbing} yet! Tune some stuff with "${prefix}${commandName}-tune".`;
+            } else {
+              const elapsed = Date.now() - actionStamp;
+              result +=
+                `${UNIRedux.arrow} ***Tuned Loot***\n\n` +
+                `Running: ${formatTime(elapsed)}\n\n`;
+              actionTune.forEach((itemName, ind) => {
+                const data = self.itemData.find((i) => i.name === itemName);
+                const timeLeft = Math.max(0, data.delay * 60 * 1000 - elapsed);
+                result +=
+                  `${ind + 1}. ${
+                    data.icon
+                  } **${itemName}** [${data.name.toLowerCase()}]\n` +
+                  `Ready In: ${formatTime(timeLeft)}\n` +
+                  `Rarity: ${100 - data.chance * 100}%\n\n`;
+              });
+              result += `Use "${prefix}${commandName}-collect" to grab your haul!`;
+            }
+
+            result += `\n${UNIRedux.arrow} ***Car Boosts***\n`;
+            if (activeCars.length === 0) {
+              result += `🚗 No cars with pets assigned! Add some with "${prefix}pet-addcar".\n`;
+            } else {
+              activeCars.forEach((car) => {
+                const carYieldBonus =
+                  ((car.maxSpeed - 100) / 1000) * (1 + car.level / 10);
+                result +=
+                  `${car.icon} **${car.name}** (Lvl ${car.level})\n` +
+                  `  Speed: +${(carYieldBonus * 100).toFixed(
+                    1
+                  )}% yield chance\n` +
+                  `  Efficiency: -${Math.floor(
+                    car.fuelEfficiency * 10 * (1 + car.level / 10)
+                  )} energy cost\n` +
+                  `  Durability: +${Math.floor(
+                    car.durability * 5 * (1 + car.level / 10)
+                  )} storage\n`;
+              });
+              result +=
+                `\nTotal:\n` +
+                `  Regen: -${formatTime(regenBonus)} faster\n` +
+                `  Yield Chance: +${(yieldChanceBonus * 100).toFixed(1)}%\n` +
+                `  Energy Cost: -${energyCostReduction}\n` +
+                `  Storage: +${storageBonus}`;
+            }
+
+            return output.reply(result);
+          },
+        },
+        {
+          key: "tune",
+          description: "Tune 3 items to start collecting—mix it up!",
+          aliases: ["-tu"],
+          async handler() {
+            const {
+              [self.key + "Stamp"]: actionStamp,
+              [self.key + "MaxZ"]: actionMax = self.storage,
+              [self.key + "Total"]: totalItems = {},
+              [self.key + "Tune"]: actionTune = [],
+              [self.key + "Energy"]: energy = 100,
+              name = "Unregistered",
+            } = await money.get(input.senderID);
+
+            if (energy < 20) {
+              return output.reply(
+                `👤 **${name}** (${self.key})\n\n` +
+                  `❌ Outta juice! Need 20⚡ (You’ve got ${energy}). Wait a bit—1⚡ every 5 min!`
+              );
+            }
+
+            let items = Object.entries(totalItems)
+              .sort(() => Math.random() - 0.5)
+              .slice(0, 5);
+            self.itemData.forEach((i) => {
+              if (!items.some(([n]) => n === i.name)) items.push([i.name, 0]);
+            });
+            items = items.slice(0, 5);
+
+            const warn = actionStamp
+              ? `⚠️ Yo, tuning again resets your timer! You might lose stuff if you don’t collect first.\n\n`
+              : "";
+            let result =
+              `👤 **${name}** (${self.key})\n\n` +
+              `${warn}` +
+              `${UNIRedux.arrow} ***Tune Up!***\n\n` +
+              `Pick 3 items (numbers, no repeats)!\n` +
+              `Ex: 1 2 3\n\n`;
+            items.forEach(([itemName, count], ind) => {
+              const data = self.itemData.find((i) => i.name === itemName);
+              result +=
+                `${ind + 1}. ${
+                  data.icon
+                } **${itemName}** [${data.name.toLowerCase()}]\n` +
+                `Rarity: ${100 - data.chance * 100}%\n` +
+                `Time: ${data.delay} min\n\n`;
+            });
+            const updatedEnergy = Math.max(0, energy - 20);
+            await money.set(input.senderID, {
+              [self.key + "Energy"]: updatedEnergy,
+            });
+            result += `⚡ Energy: ${updatedEnergy}/200 (-20)\n`;
+
+            const i = await output.reply(result);
+            input.setReply(i.messageID, {
+              async callback(ctx2) {
+                if (ctx2.input.senderID !== input.senderID) return;
+                const nums = ctx2.input.words
+                  .map((n) => parseInt(n) - 1)
+                  .filter((n) => n >= 0 && n < items.length)
+                  .slice(0, 3);
+                if (nums.length < 3) {
+                  return ctx2.output.reply(
+                    `👤 **${name}** (${self.key})\n\n` +
+                      `❌ Need 3 numbers, fam! You gave ${nums.length}.`
+                  );
+                }
+                if (new Set(nums).size !== nums.length) {
+                  return ctx2.output.reply(
+                    `👤 **${name}** (${self.key})\n\n` +
+                      `❌ No dupes allowed! Mix it up.`
+                  );
+                }
+
+                const newTune = nums.map((n) => items[n][0]);
+                await money.set(ctx2.input.senderID, {
+                  [self.key + "Tune"]: newTune,
+                  [self.key + "Stamp"]: Date.now(),
+                });
+
+                let tuneList = `${UNIRedux.arrow} ***Tuned Loot***\n\n`;
+                newTune.forEach((itemName, ind) => {
+                  const data = self.itemData.find((i) => i.name === itemName);
+                  tuneList += `${ind + 1}. ${
+                    data.icon
+                  } **${itemName}** [${data.name.toLowerCase()}]\n`;
+                });
+                return ctx2.output.reply(
+                  `👤 **${name}** (${self.key})\n\n` +
+                    `✅ Tuned up!\n\n` +
+                    `${tuneList}\n` +
+                    `⚡ Energy: ${updatedEnergy}/200 (-20)\n` +
+                    `Timer’s ticking—collect when ready!`
+                );
+              },
+            });
+          },
+        },
+        {
+          key: "collect",
+          description: "Grab your loot—don’t wait too long!",
+          aliases: ["-c"],
+          async handler() {
+            const {
+              money: userMoney,
+              [self.key + "Stamp"]: actionStamp,
+              [self.key + "MaxZ"]: actionMax = self.storage,
+              [self.key + "Total"]: totalItems = {},
+              [self.key + "Tune"]: actionTune = [],
+              [self.key + "Energy"]: energy = 100,
+              [self.key + "Buffer"]: buffer = 0,
+              [self.key + "Boost"]: boost = 0,
+              cassEXP: cxp,
+              name = "Unregistered",
+              carsData: rawCarsData = [],
+              petsData: rawPetsData = [],
+            } = await money.get(input.senderID);
+            const cassEXP = new CassEXP(cxp);
+            const carsData = new Inventory(rawCarsData || []);
+            const petsData = new Inventory(rawPetsData || []);
+
+            if (!actionStamp) {
+              return output.reply(
+                `👤 **${name}** (${self.key})\n\n` +
+                  `❌ Nothing’s ${self.verbing}! Tune some items with "${prefix}${commandName}-tune".`
+              );
+            }
+
+            const activeCars = carsData
+              .getAll()
+              .filter((car) => Array.isArray(car.pets) && car.pets.length > 0)
+              .map((car) => updateCarData(car));
+
+            const totalSpeed = activeCars.reduce(
+              (sum, car) => sum + (car.maxSpeed - 100),
+              0
+            );
+            const totalEfficiency = activeCars.reduce(
+              (sum, car) => sum + car.fuelEfficiency,
+              0
+            );
+            const totalDurability = activeCars.reduce(
+              (sum, car) => sum + car.durability,
+              0
+            );
+            const totalLevel = activeCars.reduce(
+              (sum, car) => sum + car.level,
+              0
+            );
+            const levelMultiplier =
+              1 + totalLevel / (activeCars.length || 1) / 10;
+
+            const yieldChanceBonus = (totalSpeed / 1000) * levelMultiplier;
+            const energyCostReduction = Math.floor(
+              totalEfficiency * 10 * levelMultiplier
+            );
+            const storageBonus = Math.floor(
+              totalDurability * 5 * levelMultiplier
+            );
+            const effectiveMax = actionMax + storageBonus;
+
+            const elapsed = (Date.now() - actionStamp) / 1000 / 60;
+            const tuneBasedData = self.itemData
+              .map((item) => ({
+                ...item,
+                chance: actionTune.includes(item.name)
+                  ? Math.min(
+                      item.chance +
+                        (item.streak || 0) * 0.05 +
+                        yieldChanceBonus,
+                      0.95
+                    )
+                  : Math.min(item.chance + yieldChanceBonus, 0.95),
+              }))
+              .sort(
+                (a, b) =>
+                  actionTune.indexOf(a.name) - actionTune.indexOf(b.name) ||
+                  Math.random() - 0.5
+              );
+
+            let newMoney = userMoney;
+            let totalYield = 0;
+            let failYield = 0;
+            let harvestedItems = [];
+            let boostActive = boost > 0;
+            let energyPenalty = energy < 10 ? 0.5 : 1;
+            const bufferMax = Math.floor(actionMax * 0.1);
+
+            tuneBasedData.forEach((item) => {
+              const yieldAmount =
+                Math.max(0, Math.floor(elapsed / item.delay)) *
+                (boostActive ? 2 : 1) *
+                energyPenalty;
+              if (yieldAmount <= 0) return;
+
+              let actualYield = 0;
+              for (let i = 0; i < yieldAmount; i++) {
+                if (Math.random() < item.chance) actualYield++;
+              }
+
+              if (totalYield + actualYield > effectiveMax) {
+                const excess = totalYield + actualYield - effectiveMax;
+                failYield += excess;
+                actualYield = effectiveMax - totalYield;
+              }
+
+              if (actualYield > 0) {
+                const price = Math.floor(
+                  Math.random() * (item.priceB - item.priceA + 1) + item.priceA
+                );
+                const total = actualYield * price;
+                totalYield += actualYield;
+                totalItems[item.name] =
+                  (totalItems[item.name] || 0) + actualYield;
+                harvestedItems.push({
+                  name: item.name,
+                  icon: item.icon,
+                  yieldAmount: actualYield,
+                  price,
+                  total,
+                });
+                newMoney += total;
+                item.streak = actionTune.includes(item.name)
+                  ? (item.streak || 0) + 1
+                  : 0;
+              }
+            });
+
+            const newBuffer = Math.min(buffer + failYield, bufferMax);
+            const lostYield = failYield - (newBuffer - buffer);
+            const boostTokenChance = Math.random() < 0.05 ? 1 : 0;
+            const newBoost = boostTokenChance ? boost + 1 : boost;
+            const newEnergy = Math.min(energy + 10 - energyCostReduction, 200);
+            cassEXP.expControls.raise(Math.floor(totalYield / 10));
+
+            let result =
+              `👤 **${name}** (${self.key})\n\n` +
+              `${UNIRedux.arrow} ***Collected Loot***\n\n`;
+            harvestedItems.forEach((item) => {
+              result += `${item.icon} **${item.name}** (x${
+                item.yieldAmount
+              }) [${item.name.toLowerCase()}]\n$${item.total} ($${
+                item.price
+              } each)\n\n`;
+            });
+            if (failYield > 0) {
+              result +=
+                `❌ Overflow: ${failYield} items\n` +
+                `Saved to Buffer: ${
+                  newBuffer - buffer
+                } (Buffer: ${newBuffer}/${bufferMax})\n` +
+                `Lost: ${lostYield}\n\n`;
+            }
+            result +=
+              `⚡ Energy: ${newEnergy}/200 (+10${
+                energyCostReduction > 0
+                  ? ` -${energyCostReduction} from cars`
+                  : ""
+              })\n` +
+              `🌟 Boost Tokens: ${newBoost}${
+                boostTokenChance ? " (+1)" : ""
+              }\n` +
+              `Total Haul: ${totalYield}/${effectiveMax} (${Math.floor(
+                (totalYield / effectiveMax) * 100
+              )}%)\n` +
+              `Earnings: $${(newMoney - userMoney).toLocaleString()}💵\n\n` +
+              `${
+                boostActive ? "Boosted! " : ""
+              }Tune again with "${prefix}${commandName} -tune"!`;
+
+            result += `\n${UNIRedux.arrow} ***Car Boosts***\n`;
+            if (activeCars.length === 0) {
+              result += `🚗 No cars with pets! Assign some with "${prefix}pet-addcar" to boost yield, save energy, and expand storage.\n`;
+            } else {
+              result +=
+                `Yield Chance: +${(yieldChanceBonus * 100).toFixed(
+                  1
+                )}% (Speed)\n` +
+                `Energy Saved: ${energyCostReduction} (Efficiency)\n` +
+                `Extra Storage: ${storageBonus} (Durability)\n`;
+              activeCars.forEach((car) => {
+                const carYieldBonus =
+                  ((car.maxSpeed - 100) / 1000) * (1 + car.level / 10);
+                result +=
+                  `${car.icon} **${car.name}**: +${(
+                    carYieldBonus * 100
+                  ).toFixed(1)}% chance, ` +
+                  `-${Math.floor(
+                    car.fuelEfficiency * 10 * (1 + car.level / 10)
+                  )} energy, ` +
+                  `+${Math.floor(
+                    car.durability * 5 * (1 + car.level / 10)
+                  )} storage\n`;
+              });
+            }
+
+            await money.set(input.senderID, {
+              money: newMoney,
+              [self.key + "Stamp"]: null,
+              [self.key + "MaxZ"]: actionMax,
+              [self.key + "Total"]: totalItems,
+              [self.key + "Tune"]: [],
+              [self.key + "Energy"]: newEnergy,
+              [self.key + "Buffer"]: newBuffer,
+              [self.key + "Boost"]: boostActive ? newBoost - 1 : newBoost,
+              cassEXP: cassEXP.raw(),
+            });
+
+            return output.reply(result);
+          },
+        },
+        {
+          key: "upgrade",
+          description: "Boost your storage capacity!",
+          aliases: ["-u"],
+          async handler() {
+            const data = self.stoData || { price: 100, key: `${self.key}MaxZ` };
+            const {
+              money: userMoney,
+              battlePoints: bp = 0,
+              [self.key + "MaxZ"]: actionMax = self.storage,
+              [`${self.key}_upgrades`]: upgrades = 0,
+              inventory: inv,
+              name = "Unregistered",
+            } = await money.get(input.senderID);
+            const inventory = new Inventory(inv);
+
+            const price = Math.floor(data.price * Math.pow(1.5, upgrades));
+            if (bp < price) {
+              return output.reply(
+                `👤 **${name}** (${self.key})\n\n` +
+                  `❌ Need $${price}💶 to upgrade! You’ve got $${bp}💶.\n` +
+                  `Current: ${actionMax} 🗃️\nNext: ${Math.floor(
+                    actionMax * 1.5
+                  )} 🗃️`
+              );
+            }
+
+            const i = await output.reply(
+              `👤 **${name}** (${self.key})\n\n` +
+                `Upgrade storage for $${price}💶?\n` +
+                `Current: ${actionMax} 🗃️\nNext: ${Math.floor(
+                  actionMax * 1.5
+                )} 🗃️\n` +
+                `💶: ${bp} -> ${bp - price}\n\n` +
+                `Reply "yes" to confirm!`
+            );
+            const author = input.senderID;
+            input.setReply(i.messageID, {
+              key: self.key,
+              async callback({ output, input }) {
+                if (input.senderID !== author) return;
+                if (input.body.toLowerCase() !== "yes") return;
+                input.delReply(i.messageID);
+                await money.set(input.senderID, {
+                  [`${self.key}_upgrades`]: upgrades + 1,
+                  battlePoints: bp - price,
+                  [self.key + "MaxZ"]: Math.floor(actionMax * 1.5),
+                });
+                return output.reply(
+                  `👤 **${name}** (${self.key})\n\n` +
+                    `✅ Storage bumped to ${Math.floor(
+                      actionMax * 1.5
+                    )} 🗃️!\n` +
+                    `💶: ${bp - price} (-${price})`
+                );
+              },
+            });
+          },
+        },
+        {
+          key: "boost",
+          description: "Use a Boost Token for double yield!",
+          aliases: ["-b"],
+          async handler() {
+            const { [self.key + "Boost"]: boost = 0, name = "Unregistered" } =
+              await money.get(input.senderID);
+            if (boost < 1) {
+              return output.reply(
+                `👤 **${name}** (${self.key})\n\n` +
+                  `❌ No 🌟 Boost Tokens! Earn ‘em by collecting.`
+              );
+            }
+            return output.reply(
+              `👤 **${name}** (${self.key})\n\n` +
+                `✅ Next collect will be DOUBLED with a 🌟 Boost Token!\n` +
+                `Tokens left: ${boost}`
+            );
+          },
+        },
+      ]);
+
+      return home.runInContext(context);
+    }
+  }
+
+  function updateCarData(carData) {
+    const cleanedCarData = {};
+    for (const key in carData) {
+      if (carData[key] !== null) {
+        cleanedCarData[key] = carData[key];
+      }
+    }
+
+    const defaults = {
+      distance: 0,
+      level: 1,
+      fuel: 100,
+      condition: 100,
+      maxSpeed: 120,
+      fuelEfficiency: 0.5,
+      durability: 1.0,
+      currentSpeed: 0,
+      gear: 0,
+      isRunning: false,
+      lastAction: null,
+      upgrades: [],
+      crew: [],
+      achievements: [],
+      sellPrice: 500,
+      carType: cleanedCarData.carType || "unknown",
+      icon: cleanedCarData.icon || "🚗",
+      name: cleanedCarData.name || "Unnamed",
+      key: cleanedCarData.key || `car:unknown_${Date.now()}`,
+    };
+
+    const updatedCar = { ...defaults, ...cleanedCarData };
+    updatedCar.level =
+      updatedCar.distance < 100
+        ? 1
+        : Math.floor(Math.log2(updatedCar.distance / 100)) + 1;
+    return updatedCar;
+  }
+
   obj.GameSimulator = GameSimulator;
+  obj.GameSimulatorRedux = GameSimulatorRedux;
   obj.isTimeAvailable = isTimeAvailable;
   obj.BulkUpdater = BulkUpdater;
   obj.ItemLister = ItemLister;

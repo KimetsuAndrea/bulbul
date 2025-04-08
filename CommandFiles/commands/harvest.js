@@ -95,6 +95,9 @@ const harv = {
   initialStorage: 30,
   itemData: crops,
   actionEmoji: "🌱",
+  stoData: {
+    price: 50,
+  },
 };
 
 /**

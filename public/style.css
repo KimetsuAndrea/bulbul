@@ -809,3 +809,16 @@ hr {
 .photo-box {
   padding: 0;
 }
+
+a {
+  font-weight: bold;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: text-decoration 0.2s ease;
+}
+
+a:hover,
+a:focus-visible {
+  filter: brightness(50%);
+}

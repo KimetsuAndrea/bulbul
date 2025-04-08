@@ -10,7 +10,8 @@ declare module "cassidy-userData" {
     | "food"
     | "anypet_food"
     | "cheque"
-    | `${string}_food`;
+    | `${string}_food`
+    | `${string}`;
 
   interface UserStatsManagerOld {
     filePath: string;

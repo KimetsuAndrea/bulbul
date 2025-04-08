@@ -1,3 +1,4 @@
+// @ts-check
 import crypto from "crypto";
 
 /**
@@ -30,11 +31,20 @@ export function emojiEnd(str) {
     UNISpectra.nextArrow.repeat(2) +
     "" +
     (emojis ? " " + emojis : "");
-  const res =
+  const res = (
     UNISpectra.nextArrow.repeat(1) +
     "  " +
     (emojis ? UNISpectra.wrapEmoji(emojis) + "  " : "") +
-    nonEmojis;
+    nonEmojis
+      .split(" ")
+      .map((i, j) => {
+        if (j === 0) {
+          return `**${i}**`;
+        }
+        return i;
+      })
+      .join(" ")
+  ).trim();
   console.log(str, " => ", res);
   return res;
 }
@@ -205,17 +215,23 @@ export class UNISpectra {
   static restart = "⟳";
   static arrowOutline = "➩";
 
-  static spectraMark = `${this.spectra} ${this.charm}\n[font=fancy_italic]Simplicity, and Innovation.[:font=fancy_italic]`;
+  static get spectraMark() {
+    return `${this.spectra} ${this.charm}\n[font=fancy_italic]Simplicity, and Innovation.[:font=fancy_italic]`;
+  }
   static spectra = `☄️🪐 [font=redux]Cass${this.nextArrow}dy[:font=redux][font=bold]Spectra[:font=bold]`;
 
   static emojiRegex = /\p{Emoji}/gu;
 }
 
+/**
+ * @type {Record<string, (value: string) => string>}
+ */
 export const fontMarkups = new Proxy(
   {},
   {
     get(_, fontName) {
-      return (value) => `[font=${fontName}]${value}[:font=${fontName}]`;
+      return (value) =>
+        `[font=${String(fontName)}]${value}[:font=${String(fontName)}]`;
     },
   }
 );
@@ -306,6 +322,11 @@ export function isAdminCommand(command) {
   );
 }
 
+/**
+ * @template {Record<string, CassidySpectra.CassidyCommand>} T
+ * @param {T} commands
+ * @returns {T}
+ */
 export function removeCommandAliases(commands) {
   const keys = [
     ...new Set(Object.entries(commands).map((i) => i[1]?.meta?.name)),

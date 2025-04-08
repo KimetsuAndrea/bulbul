@@ -4,11 +4,11 @@ import { toTitleCase, UNIRedux } from "@cassidy/unispectra";
 import { ShopClass } from "../plugins/shopV2.js";
 
 export const meta = {
-  name: "shop",
-  description: "Buy anything!",
-  version: "1.1.9",
+  name: "tileshop",
+  description: "Buy shop themes!",
+  version: "1.2.0",
   author: "Liane Cagara",
-  usage: "{prefix}shop",
+  usage: "{prefix}tileshop",
   category: "Shopping",
   permissions: [0],
   noPrefix: "both",
@@ -19,7 +19,7 @@ export const meta = {
 };
 
 export const style = {
-  title: "Shop 🛒",
+  title: "Tiles Shop 🟨⬜",
   titleFont: "bold",
   contentFont: "fancy",
 };
@@ -29,7 +29,7 @@ const { UserSorter } = global.utils; //{ users, limit = null, sortBy = "money", 
 /**
  * @type {{ [key: string]: CommandEntry }}
  */
-export const entryConfig = {
+const entryConfig = {
   async top({ input, output, money }) {
     const allData = await money.getAll();
     let usersCalc = {};
@@ -105,6 +105,7 @@ export const entryConfig = {
   },
   async cmd(context) {
     const { input, output, args, money, prefix } = context;
+    return output.reply(`❌ Please use ${prefix}buy instead.`);
     if (args[0] === "buy") {
       if (!args[1]) {
         return output.reply(
@@ -193,6 +194,7 @@ export const entryConfig = {
   },
 
   async storage({ input, output, args, money, prefix, Inventory }) {
+    return output.reply("This useless now.");
     if (args[0] !== "buy") {
       let text = "";
       const userData = await money.get(input.senderID);
@@ -217,7 +219,7 @@ export const entryConfig = {
         const storage = userData[val.key]
           ? userData[val.key] * 2
           : "Unknown..?";
-        text += `**${name}** - ${price}💷 ${
+        text += `**${name}** - ${price}💶 ${
           hasDiscount ? `(${originalPrice}$) \n25% OFF! 🎀` : ""
         }${userData.battlePoints < price ? "❌" : "💰"}\n🗃️ LV${LV} Storage: ${
           isNaN(storage) ? storage : storage / 2
@@ -264,17 +266,17 @@ Type ${prefix}**shop.storage buy <item name>** fo buy an upgrade.`
     let price = Math.floor(data.price * 2 ** upgrades * multiplier);
     if (userMoney < price) {
       return output.reply(
-        `❌ The price of "${args[1]}" **storage** upgrade is ${price}💷 but you only have ${userMoney}💷.`
+        `❌ The price of "${args[1]}" **storage** upgrade is ${price}💶 but you only have ${userMoney}💶.`
       );
     }
     await output.quickWaitReact(
       `⚠️ Buy "${
         args[1]
-      }" storage upgrade for ${price}💷?\n**Old Storage**: ${storage} 🗃️\n**New Storage**: ${
+      }" storage upgrade for ${price}💶?\n**Old Storage**: ${storage} 🗃️\n**New Storage**: ${
         storage * 2
-      } 🗃️\n\n**Battle Points**\nBefore - ${userMoney}💷\nAfter - ${
+      } 🗃️\n\n**Pet Points**\nBefore - ${userMoney}💶\nAfter - ${
         userMoney - price
-      }💷`,
+      }💶`,
       {
         authorOnly: true,
         edit: "✅ Proceeding...",
@@ -288,9 +290,9 @@ Type ${prefix}**shop.storage buy <item name>** fo buy an upgrade.`
     await output.reply(
       `✅ Successfully purchased "${args[1]}"${
         hasDiscount ? "25% OFF! 🎀" : ""
-      } storage upgrade for ${price}💷!\n\n**Old Storage**: ${storage} 🗃️\n**New Storage**: ${
+      } storage upgrade for ${price}💶!\n\n**Old Storage**: ${storage} 🗃️\n**New Storage**: ${
         storage * 2
-      } 🗃️\n**New Battle Points**: ${userMoney - price}💷 (-${price})`
+      } 🗃️\n**New Pet Points**: ${userMoney - price}💶 (-${price})`
     );
   },
   async tiles({ input, output, args, money, prefix }) {
@@ -419,7 +421,7 @@ const home = new ReduxCMDHome({
     storage: {
       key: "storage",
       description:
-        "Upgrade your storage for games like Harvest or Mine using your battle points.",
+        "Upgrade your storage for games like Harvest or Mine using your pet points.",
       args: ["buy <item_name | no argument: lists items>"],
       aliases: ["-s", "sto"],
     },
@@ -436,16 +438,8 @@ const home = new ReduxCMDHome({
   },
 });
 
-/**
- *
- * @param {CommandContext} ctx
- * @returns
- */
 export async function entry(ctx) {
-  // home.runInContext(ctx);
-  return ctx.output.reply(
-    `✨ We were moving away!\n\n**Buy** - unlock a command.\n**Tileshop** - Buy tiles themes!`
-  );
+  return entryConfig.tiles(ctx);
 }
 
 function mapThemeIcons(theme) {

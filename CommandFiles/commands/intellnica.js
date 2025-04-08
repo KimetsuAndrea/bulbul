@@ -1,10 +1,11 @@
-import { UNIRedux } from "@cassidy/unispectra";
+import { CassPuppet } from "../modules/CassPuppet.ts";
+import { UNIRedux } from "../modules/unisym.js";
 import { Slicer } from "../plugins/utils-liane.js";
 export const meta = {
   name: "intellnica",
   description: "CassidyNica's Intelligence Capabilities.",
   author: "Liane Cagara || JenicaDev",
-  version: "1.1.0",
+  version: "1.2.2",
   usage: "{prefix}intellnica <action> [arguments]",
   category: "Utilities",
   permissions: [0],
@@ -59,6 +60,7 @@ const keys = [
   "treasure",
   "superwarp",
   "explorer",
+  "fashionista",
 ];
 
 /**
@@ -230,7 +232,17 @@ export async function entry(ctx) {
   const dctx = dangerousContext(ctx);
   for (const target of targets) {
     try {
-      await target.entry(dctx);
+      const puppet = new CassPuppet({
+        context: ctx,
+        fullyBuffer: true,
+        outputChannel: "pipe",
+        sandboxMoney: true,
+      });
+      const execution = puppet.executeCommand({
+        commandName: target.meta.name,
+        args: [],
+        extraContext: dctx,
+      });
     } catch (error) {
       errs[target.meta.name] = error;
     }
@@ -263,14 +275,14 @@ export async function entry(ctx) {
   const opts = [
     {
       name: "subscribe",
-      icon: "💷",
+      icon: "💶",
       norenew: true,
-      desc: `Renews Subscription for **💷${renewPrice.toLocaleString()}**`,
+      desc: `Renews Subscription for **💶${renewPrice.toLocaleString()}**`,
       async callback() {
         const { battlePoints = 0 } = userData;
         if (battlePoints < renewPrice) {
           return output.reply(
-            `❌ Not enough, you only had **💷${battlePoints.toLocaleString()}**, we need is **💷${renewPrice.toLocaleString()}**`
+            `❌ Not enough, you only had **💶${battlePoints.toLocaleString()}**, we need is **💶${renewPrice.toLocaleString()}**`
           );
         }
         const { intellRenew } = userData;
@@ -588,11 +600,11 @@ export async function entry(ctx) {
     const c = input.isAdmin && input.propertyArray.includes("cheat");
     if (!intellRenew && !c) {
       return output.reply(
-        `🔒 You need to use the subscribe option first. It will only cost you **💷${renewPrice.toLocaleString()}**`
+        `🔒 You need to use the subscribe option first. It will only cost you **💶${renewPrice.toLocaleString()}**`
       );
     } else if (elapsed > renewal && !c) {
       return output.reply(
-        `⚠️ **Subscription Expired!**\nPlease use the subscribe option again to renew your subscription. It will only cost you **💷${renewPrice.toLocaleString()}**.\n\nSince: ${formatDuration(
+        `⚠️ **Subscription Expired!**\nPlease use the subscribe option again to renew your subscription. It will only cost you **💶${renewPrice.toLocaleString()}**.\n\nSince: ${formatDuration(
           elapsed
         )}`
       );
