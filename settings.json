@@ -1,15 +1,15 @@
 {
   "FCA": {
     "path": "./node_modules/ws3-fca/index.js",
-    "forceLogin": true,
+    "forceLogin": false,
     "listenEvents": true,
     "logLevel": "silent",
     "updatePresence": true,
     "selfListen": false,
-    "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0",
-    "online": true,
-    "autoMarkDelivery": false,
-    "autoMarkRead": false,
+    "userAgent": "Mozilla/5.0 (Android 12; Mobile; rv:135.0) Gecko/135.0 Firefox/135.0",
+    "online": false,
+    "autoMarkDelivery": true,
+    "autoMarkRead": true,
     "region": "PRN"
   },
   "defaultLang": "en",
