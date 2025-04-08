@@ -30,8 +30,8 @@
   "credentials": {
     "email": "",
     "password": "",
-    "email_asEnvKey": false,
-    "password_asEnvKey": false,
+    "email_asEnvKey": true,
+    "password_asEnvKey": true,
     "note": "This is for the bot account, not your main account, if email_asEnvKey or password_asEnvKey is true, it will use the .env key provided in email and password fields, this is helpful when hiding the credentials."
   },
   "PREFIX": "#",
