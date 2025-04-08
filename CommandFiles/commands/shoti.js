@@ -29,7 +29,8 @@ export async function entry({
   try {
     const data = await shoti.getShoti({ type: "link" });
 
-    const message = `Instagram: ${data?.user?.instagram || "N/A"}\n` +
+    const message = `Country: ${data?.region|| "N/A"}\n` +
+    `Instagram: ${data?.user?.instagram || "N/A"}\n` +
                     `Nickname: ${data?.user?.nickname || "N/A"}\n` +
                     `Signature: ${data?.user?.signature || "N/A"}\n` +
                     `Twitter: ${data?.user?.twitter || "N/A"}\n` +
