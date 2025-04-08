@@ -18,7 +18,14 @@ import { defineEntry } from "@cass/define";
 
 const shoti = new Shoti("$shoti-b04f8c279e");
 
-export const entry = defineEntry(async ({ input, output }) => {
+export async function entry({
+  output,
+  money,
+  input,
+  styler,
+  cancelCooldown,
+  Inventory,
+}) {
   try {
     const data = await shoti.getShoti({ type: "link" });
 
@@ -37,7 +44,7 @@ export const entry = defineEntry(async ({ input, output }) => {
       body: `Failed to fetch Shoti video: ${err.message || err}`,
     });
   }
-});
+};
 
 export const style = {
   title: "Random Shoti Video",
