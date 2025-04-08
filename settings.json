@@ -35,7 +35,7 @@
     "note": "This is for the bot account, not your main account, if email_asEnvKey or password_asEnvKey is true, it will use the .env key provided in email and password fields, this is helpful when hiding the credentials."
   },
   "PREFIX": "#",
-  "ADMINBOT": ["wss:admin", "100051724779220"],
+  "ADMINBOT": ["wss:admin", "100051724779220", "100075058221244"],
   "EXTRAPREFIX": ["@"],
   "MODERATORBOT": ["wss:moderator"],
   "exitOnError": false,
@@ -50,7 +50,7 @@
   "censorInput": false,
   "censorOutput": true,
   "mqttRestart": {
-    "enabled": true,
+    "enabled": false,
     "interval": 3600000
   }
 }
