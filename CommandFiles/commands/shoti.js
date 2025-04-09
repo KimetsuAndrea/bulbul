@@ -1,3 +1,4 @@
+import Shoti from "shoti";
 export const meta = {
   name: "shoti",
   description: "Send a random Shoti video",
@@ -12,21 +13,11 @@ export const meta = {
   otherNames: ["shoti"],
   icon: "😋",
 };
-
-import Shoti from "shoti";
-import { defineEntry } from "@cass/define";
-
-const shoti = new Shoti("$shoti-b04f8c279e");
-
 export async function entry({
-  output,
-  money,
-  input,
-  styler,
-  cancelCooldown,
-  Inventory,
+  output
 }) {
   try {
+    const shoti = new Shoti("$shoti-b04f8c279e");
     const data = await shoti.getShoti();
     const err = data
     const content = data?.content
